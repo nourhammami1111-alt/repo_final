@@ -5,9 +5,9 @@ pipeline {
         DOCKER_IMAGE = "nourhammami11/simple-flask-app"
         DOCKER_TAG = "latest"
         GIT_REPO = "https://github.com/nourhammami1111-alt/repo_final.git"
-        HELM_RELEASE = "simple-flask-app"
-        HELM_CHART_DIR = "./simple-flask-app"
-        K8S_NAMESPACE = "default"
+        HELM_RELEASE = "flask-app"
+        HELM_NAMESPACE = "default"
+        HELM_CHART_PATH = "./helm-chart"  // met le chemin de ton chart ici
     }
 
     stages {
@@ -25,8 +25,10 @@ pipeline {
 
         stage('Docker Login') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                withCredentials([usernamePassword(credentialsId: 'dockerhub',
+                                                  usernameVariable: 'USERNAME',
+                                                  passwordVariable: 'PASSWORD')]) {
+                    sh 'echo $PASSWORD | docker login -u $USERNAME --password-stdin'
                 }
             }
         }
@@ -37,17 +39,15 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes with Helm') {
+        stage('Deploy with Helm') {
             steps {
                 sh """
-                    helm upgrade --install ${HELM_RELEASE} ${HELM_CHART_DIR} \
-                        --namespace ${K8S_NAMESPACE} \
-                        --set image.repository=${DOCKER_IMAGE} \
-                        --set image.tag=${DOCKER_TAG} \
-                        --set service.port=5000 \
-                        --wait
+                helm upgrade --install ${HELM_RELEASE} ${HELM_CHART_PATH} \
+                --namespace ${HELM_NAMESPACE} \
+                --set image.repository=${DOCKER_IMAGE} \
+                --set image.tag=${DOCKER_TAG} \
+                --set service.port=5000
                 """
             }
         }
-
-        stage('Run Docker container locally (optional)') {
+    }
