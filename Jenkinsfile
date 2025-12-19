@@ -5,7 +5,9 @@ pipeline {
         DOCKER_IMAGE = "nourhammami11/simple-flask-app"
         DOCKER_TAG = "latest"
         GIT_REPO = "https://github.com/nourhammami1111-alt/repo_final.git"
-        DOCKERHUB_CREDENTIALS = 'dockerhub-credentials' // ID du credential Jenkins
+        HELM_RELEASE = "simple-flask-app"
+        HELM_CHART_DIR = "./simple-flask-app"
+        K8S_NAMESPACE = "default"
     }
 
     stages {
@@ -23,10 +25,8 @@ pipeline {
 
         stage('Docker Login') {
             steps {
-                withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}",
-                                                  usernameVariable: 'DOCKER_USER',
-                                                  passwordVariable: 'DOCKER_PASS')]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
                 }
             }
         }
@@ -37,22 +37,17 @@ pipeline {
             }
         }
 
-        stage('Run Docker container') {
-    steps {
-        sh "docker stop simple-flask-app || true"
-        sh "docker rm simple-flask-app || true"
-        sh "docker run -d --name simple-flask-app -p 5000:5000 ${DOCKER_IMAGE}:${DOCKER_TAG}"
-    }
-}
-    }
-
-    post {
-        success {
-            echo "Pipeline terminé avec succès ! 🎉"
+        stage('Deploy to Kubernetes with Helm') {
+            steps {
+                sh """
+                    helm upgrade --install ${HELM_RELEASE} ${HELM_CHART_DIR} \
+                        --namespace ${K8S_NAMESPACE} \
+                        --set image.repository=${DOCKER_IMAGE} \
+                        --set image.tag=${DOCKER_TAG} \
+                        --set service.port=5000 \
+                        --wait
+                """
+            }
         }
-        failure {
-            echo "Pipeline échoué 😢"
-        }
-    }
-}
 
+        stage('Run Docker container locally (optional)') {
