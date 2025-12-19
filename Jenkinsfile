@@ -38,12 +38,12 @@ pipeline {
         }
 
         stage('Run Docker container') {
-            steps {
-                sh "docker stop ${DOCKER_IMAGE} || true"
-                sh "docker rm ${DOCKER_IMAGE} || true"
-                sh "docker run -d --name ${DOCKER_IMAGE} -p 5000:5000 ${DOCKER_IMAGE}:${DOCKER_TAG}"
-            }
-        }
+    steps {
+        sh "docker stop simple-flask-app || true"
+        sh "docker rm simple-flask-app || true"
+        sh "docker run -d --name simple-flask-app -p 5000:5000 ${DOCKER_IMAGE}:${DOCKER_TAG}"
+    }
+}
     }
 
     post {
