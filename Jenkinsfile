@@ -6,8 +6,8 @@ pipeline {
         DOCKER_TAG = "latest"
         GIT_REPO = "https://github.com/nourhammami1111-alt/repo_final.git"
         HELM_RELEASE = "flask-app"
+        HELM_CHART_PATH = "./helm-chart" // chemin vers ton Helm chart
         HELM_NAMESPACE = "default"
-        HELM_CHART_PATH = "./helm-chart"  // met le chemin de ton chart ici
     }
 
     stages {
@@ -39,15 +39,9 @@ pipeline {
             }
         }
 
-        stage('Deploy with Helm') {
+        stage('Run Docker container locally') {
             steps {
-                sh """
-                helm upgrade --install ${HELM_RELEASE} ${HELM_CHART_PATH} \
-                --namespace ${HELM_NAMESPACE} \
-                --set image.repository=${DOCKER_IMAGE} \
-                --set image.tag=${DOCKER_TAG} \
-                --set service.port=5000
-                """
-            }
-        }
-    }
+                // nom de conteneur valide sans slash
+                sh "docker stop flask-app || true"
+                sh "docker rm flask-app || true"
+                sh "docker run -d --name flask-app -p 5000:5000 ${DOCKER_IMAGE}:${DOCKER_TAG}"
